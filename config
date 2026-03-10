@@ -1,0 +1,8 @@
+((database . ((host	. localhost)
+	      (port	. 8081)
+	      (dbname	. test)
+	      (user	. username)
+	      (password	. yourStrongPass)))
+ (background . F0F8FF)
+ (color-ll . 16)
+ (color-ul . 192))
