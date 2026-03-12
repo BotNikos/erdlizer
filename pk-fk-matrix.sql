@@ -12,6 +12,7 @@ from
         join information_schema.key_column_usage kc1 on kc1.constraint_name = c1.constraint_name
         join information_schema.key_column_usage kc2 on kc2.constraint_name = c2.constraint_name
 where
-        c2.constraint_schema ~ '^_.*'
+        c2.constraint_schema = any($1)
+        and c1.constraint_schema = any($1)
         and c1.constraint_type = 'FOREIGN KEY'
 ;

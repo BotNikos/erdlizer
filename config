@@ -5,4 +5,5 @@
 	      (password	. yourStrongPass)))
  (background . F0F8FF)
  (color-ll . 16)
- (color-ul . 192))
+ (color-ul . 192)
+ (plantuml . "/path/to/plantuml.jar"))

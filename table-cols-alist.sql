@@ -5,7 +5,7 @@ select
 from
         information_schema.columns
 where
-        table_schema ~ '^_.*'
+        table_schema = any($1)
 group by
         table_schema,
         table_name

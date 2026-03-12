@@ -3,7 +3,9 @@
 	(chicken random)
 	(chicken format)
 	(chicken process)
+	(chicken process-context)
 	(chicken file)
+	srfi-1
 	srfi-13
 	postgresql)
 
@@ -41,12 +43,8 @@
       acc
       (fill-matrix conf (cdr matrix)
 		   (let* ((row (car matrix))
-			  (fscm (list-ref row 0))
-			  (ftbl (list-ref row 1))
-			  (fcol (list-ref row 2))
-			  (pcol (list-ref row 3))
-			  (ptbl (list-ref row 4))
-			  (pscm (list-ref row 5)))
+			  (fscm (list-ref row 0)) (ftbl (list-ref row 1)) (fcol (list-ref row 2))
+			  (pcol (list-ref row 3)) (ptbl (list-ref row 4)) (pscm (list-ref row 5)))
 		     (conc acc
 			   fscm "." ftbl "::" fcol
 			   " -up-> "
@@ -65,17 +63,35 @@
 	(fill-matrix conf matrix "")
 	"@enduml\n"))
 
-(let* ((conf (read (open-input-file "config")))
+(define (get-arg args)
+  (case (string->symbol (car args))
+    ((-h --help) (print "Do you need help?") (exit 1))
+    ((-t --type) (cons 'type (cadr args)))
+    ((-c --conf) (cons 'conf (cadr args)))
+    (else (car args))))
+
+(define (parse-args args acc)
+  (if (null? args)
+      (let-values (((schemas args) (partition string? acc)))
+	(cons (cons 'schemas schemas) args))
+      (parse-args (if (member (car args) '("-h" "--help" "-t" "--type" "-c" "--conf"))
+		      (cddr args)
+		      (cdr args))
+		  (cons (get-arg args) acc))))
+
+(let* ((args (parse-args (command-line-arguments) '()))
+       (type (cdr (or (assoc 'type args) '(type . "svg"))))
+       (conf (read (open-input-file "config")))
        (conn (connect (cdr (assoc 'database conf))
 		      (cons `("sql_identifier" . ,identity)
 			    (default-type-parsers))))
        (table-cols-sql (read-string #f (open-input-file "table-cols-alist.sql")))
        (pk-fk-matrix-sql (read-string #f (open-input-file "pk-fk-matrix.sql")))
-       
-       (pk-fk-matrix (get-list-from-query (query conn pk-fk-matrix-sql)))
-       (table-cols  (get-list-from-query (query conn table-cols-sql))))
- 
+       (pk-fk-matrix (get-list-from-query (query conn pk-fk-matrix-sql (list->vector (cdr (assoc 'schemas args))))))
+       (table-cols (get-list-from-query (query conn table-cols-sql (list->vector (cdr (assoc 'schemas args)))))))
+  
   (display (fill-file conf table-cols pk-fk-matrix) (open-output-file "/tmp/erd-gen.uml"))
-  (process-wait (process-run "java" '("-jar" "/home/nikita/plantuml.jar" "-tsvg" "/tmp/erd-gen.uml")))
-  (move-file "/tmp/erd-gen.svg" "./result.svg" #t))
-
+  (process-wait (process-run "java" `("-jar" ,(cdr (assoc 'plantuml conf))
+				      ,(conc "-t" type)
+				      "/tmp/erd-gen.uml")))
+  (move-file (conc "/tmp/erd-gen." type) (conc "./result." type) #t))
