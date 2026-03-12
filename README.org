@@ -1,0 +1,52 @@
+* ERDlizer
+Tool for creating ER Diagrams from database inforation_schema
+
+* Getting started
+** Requirements
+- [[https:call-cc.org][Chicken Scheme]]
+- [[https:plantuml.com][Plantuml]] (and java as a consequence)
+- Chicken postgresql library
+  
+** Installation
+
+All you need to do is resolve all dependecies, clone repository and build the application:
+
+#+begin_src bash
+  curl -L -O https://github.com/plantuml/plantuml/releases/download/v1.2026.2/plantuml-1.2026.2.jar #Check the version to be lastest before go
+  chicken install postgresql
+  git clone https://github.com/BotNikos/erdlizer.git && cd erdlizer
+  csc main.scm -o erdlizer
+#+end_src
+
+** Configuration
+
+Application configuration is stored in ~config~ file by default and have lisp associative list data format. You can see default configuration example below:
+
+#+begin_src config
+;; Info for setting up a connection with database
+((database . ((host	. localhost)
+	      (port	. 8081)
+	      (dbname	. fizdb2)
+	      (user	. postgres)
+	      (password	. ine3ss62)))
+ (background . F0F8FF)			;; Background color for grouping schemas
+ (color-ll . 16)				;; Low level for relation arrows color (0 - 255)
+ (color-ul . 192)				;; Upper level for relation arrows color (0 - 255)
+ (plantuml . "/your/path/to/plantuml.jar")) ;; Path to plantuml executable
+#+end_src
+
+* Usage
+
+Use the ~--help~ flag to see all possible cli arguments
+
+#+begin_src bash
+  erdlizer --help
+  Usage: erdlizer [OPTION...] schema...
+
+  -h, --help		Show this help message
+  -t, --type=type	Set output file type, it can be "svg" or "png", "svg" is used by default
+  -c, --config=path	Set path to configuration file, default value is "./config"
+  
+#+end_src
+
+
