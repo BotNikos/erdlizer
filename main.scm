@@ -65,21 +65,27 @@
 
 (define (get-arg args)
   (case (string->symbol (car args))
-    ((-h --help) (print "Do you need help?") (exit 1))
+    ((-h --help) (print "    erdlizer --help
+    Usage: erdlizer [OPTION...] schema...
+
+    -h, --help		Show this help message
+    -t, --type=type	Set output file type, it can be 'svg' or
+    			'png', 'svg' is used by default
+    -c, --config=path	Set path to configuration file, default value is './config'") (exit 1))
     ((-t --type) (cons 'type (cadr args)))
     ((-c --conf) (cons 'conf (cadr args)))
     (else (car args))))
 
-(define (parse-args args acc)
+(define (parse-args acc args)
   (if (null? args)
       (let-values (((schemas args) (partition string? acc)))
 	(cons (cons 'schemas schemas) args))
-      (parse-args (if (member (car args) '("-h" "--help" "-t" "--type" "-c" "--conf"))
+      (parse-args (cons (get-arg args) acc)
+		  (if (member (car args) '("-h" "--help" "-t" "--type" "-c" "--conf"))
 		      (cddr args)
-		      (cdr args))
-		  (cons (get-arg args) acc))))
+		      (cdr args)))))
 
-(let* ((args (parse-args (command-line-arguments) '()))
+(let* ((args (parse-args '() (command-line-arguments)))
        (type (cdr (or (assoc 'type args) '(type . "svg"))))
        (conf (read (open-input-file "config")))
        (conn (connect (cdr (assoc 'database conf))
