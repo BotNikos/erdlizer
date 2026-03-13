@@ -40,12 +40,13 @@ Application configuration is stored in ~config~ file by default and have lisp as
 Use the ~--help~ flag to see all possible cli arguments
 
 #+begin_src bash
-  erdlizer --help
-  Usage: erdlizer [OPTION...] schema...
+    erdlizer --help
+    Usage: erdlizer [OPTION...] schema...
 
-  -h, --help		Show this help message
-  -t, --type=type	Set output file type, it can be "svg" or "png", "svg" is used by default
-  -c, --config=path	Set path to configuration file, default value is "./config"
+    -h, --help	Show this help message
+    -t, --type=type	Set output file type, it can be 'svg' or
+    			'png', 'svg' is used by default
+    -c, --config=path	Set path to configuration file, default value is './config'
   
 #+end_src
 
