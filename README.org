@@ -3,8 +3,8 @@ Tool for creating ER Diagrams from database inforation_schema
 
 * Getting started
 ** Requirements
-- [[https:call-cc.org][Chicken Scheme]]
-- [[https:plantuml.com][Plantuml]] (and java as a consequence)
+- [[https://call-cc.org][Chicken Scheme]]
+- [[https://plantuml.com][Plantuml]] (and java as a consequence)
 - Chicken postgresql library
   
 ** Installation
