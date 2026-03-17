@@ -7,7 +7,8 @@
 	(chicken file)
 	srfi-1
 	srfi-13
-	postgresql)
+	postgresql
+	medea)
 
 (define (get-list-from-query res)
  (row-fold (lambda (row acc) (cons row acc)) '() res))
@@ -28,13 +29,18 @@
 		   (let* ((row (car tables))
 			  (schema (car row))
 			  (table-name (cadr row))
-			  (cols (caddr row)))
+			  (cols (read-json (caddr row))))
 		     (conc acc "entity " schema "." table-name " {\n"
 			   (let loop ((len (vector-length cols))
 				      (i 0)
 				      (acc ""))
 			     (if (< i len)
-				 (loop len (+ i 1) (conc acc "\t" (vector-ref cols i) "\n"))
+				 (loop len (+ i 1) (conc acc "\t"
+							 (case (cdr (assoc 'type (vector-ref cols i)))
+							   [(|PRIMARY KEY|) "{static} *"]
+							   [(|FOREIGN KEY|) "{abstract} +"]
+							   [else ""])
+							 (cdr (assoc 'name (vector-ref cols i))) "\n"))
 				 acc))
 			   "}\n\n")))))
 
@@ -91,10 +97,12 @@
        (conn (connect (cdr (assoc 'database conf))
 		      (cons `("sql_identifier" . ,identity)
 			    (default-type-parsers))))
-       (table-cols-sql (read-string #f (open-input-file "table-cols-alist.sql")))
+       (table-cols-sql (read-string #f (open-input-file "table-cols-alist-type.sql")))
        (pk-fk-matrix-sql (read-string #f (open-input-file "pk-fk-matrix.sql")))
        (pk-fk-matrix (get-list-from-query (query conn pk-fk-matrix-sql (list->vector (cdr (assoc 'schemas args))))))
        (table-cols (get-list-from-query (query conn table-cols-sql (list->vector (cdr (assoc 'schemas args)))))))
+
+  (json-parsers `((string . ,string->symbol) . ,(json-parsers)))
   
   (display (fill-file conf table-cols pk-fk-matrix) (open-output-file "/tmp/erd-gen.uml"))
   (process-wait (process-run "java" `("-jar" ,(cdr (assoc 'plantuml conf))
