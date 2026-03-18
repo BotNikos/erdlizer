@@ -93,7 +93,7 @@
 
 (let* ((args (parse-args '() (command-line-arguments)))
        (type (cdr (or (assoc 'type args) '(type . "svg"))))
-       (conf (read (open-input-file "config")))
+       (conf (read (open-input-file (cdr (or (assoc 'conf args) '(conf . "config"))))))
        (conn (connect (cdr (assoc 'database conf))
 		      (cons `("sql_identifier" . ,identity)
 			    (default-type-parsers))))
