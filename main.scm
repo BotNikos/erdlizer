@@ -81,6 +81,7 @@
     -h, --help		Show this help message
     -t, --type=type	Set output file type, it can be 'svg' or
     			'png', 'svg' is used by default
+	--tables	Change mode for generation by table names
     -c, --config=path	Set path to configuration file, default value is './config'"]
 	[key (string->symbol (car args))])
 
