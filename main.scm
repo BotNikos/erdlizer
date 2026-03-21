@@ -13,6 +13,11 @@
 (define (get-list-from-query res)
  (row-fold (lambda (row acc) (cons row acc)) '() res))
 
+(define (query-file file-args conn)
+  (let ([content (read-string #f (open-input-file (car file-args)))]
+	[args (cdr file-args)])
+    (get-list-from-query (query* conn content args))))
+
 (define (get-rand-color conf)
   (let* ((color-ll (cdr (assoc 'color-ll conf)))
 	 (color-ul (cdr (assoc 'color-ul conf)))
@@ -70,17 +75,21 @@
 	"@enduml\n"))
 
 (define (get-arg args)
-  (case (string->symbol (car args))
-    ((-h --help) (print "    erdlizer --help
+  (let ([help-str "    erdlizer --help
     Usage: erdlizer [OPTION...] schema...
 
     -h, --help		Show this help message
     -t, --type=type	Set output file type, it can be 'svg' or
     			'png', 'svg' is used by default
-    -c, --config=path	Set path to configuration file, default value is './config'") (exit 1))
-    ((-t --type) (cons 'type (cadr args)))
-    ((-c --conf) (cons 'conf (cadr args)))
-    (else (car args))))
+    -c, --config=path	Set path to configuration file, default value is './config'"]
+	[key (string->symbol (car args))])
+
+    (case key
+      [(-h --help) (print help-str) (exit 1)]
+      [(-t --type) `(type . ,(cadr args))]
+      [(-c --conf) `(conf . ,(cadr args))]
+      [(--tables) `(tables . #t)]
+      [else (car args)])))
 
 (define (parse-args acc args)
   (if (null? args)
@@ -91,16 +100,24 @@
 		      (cddr args)
 		      (cdr args)))))
 
-(let* ((args (parse-args '() (command-line-arguments)))
-       (type (cdr (or (assoc 'type args) '(type . "svg"))))
-       (conf (read (open-input-file (cdr (or (assoc 'conf args) '(conf . "config"))))))
-       (conn (connect (cdr (assoc 'database conf))
-		      (cons `("sql_identifier" . ,identity)
-			    (default-type-parsers))))
-       (table-cols-sql (read-string #f (open-input-file "table-cols-alist-type.sql")))
-       (pk-fk-matrix-sql (read-string #f (open-input-file "pk-fk-matrix.sql")))
-       (pk-fk-matrix (get-list-from-query (query conn pk-fk-matrix-sql (list->vector (cdr (assoc 'schemas args))))))
-       (table-cols (get-list-from-query (query conn table-cols-sql (list->vector (cdr (assoc 'schemas args)))))))
+(let* ([args		(parse-args '() (command-line-arguments))]
+       [type		(cdr (or (assoc 'type args) '(type . "svg")))]
+       [conf		(read (open-input-file (cdr (or (assoc 'conf args) '(conf . "config")))))]
+       [conn		(connect (cdr (assoc 'database conf))
+				 (cons `("sql_identifier" . ,identity)
+				       (default-type-parsers)))]
+       [schemas		`(,(list->vector (cdr (assoc 'schemas args))))]
+       
+       [scripts		(map (lambda (name)
+			       (cons (conc name
+					   (if (assoc 'tables args) "-tables" "")
+					   ".sql")
+				     schemas))
+			     '("sql/table-cols-alist" "sql/pk-fk-matrix"))]
+       
+       [data		(map query-file scripts (make-list (length scripts) conn))]
+       [table-cols	(car data)]
+       [pk-fk-matrix	(cadr data)])
 
   (json-parsers `((string . ,string->symbol) . ,(json-parsers)))
   
@@ -109,3 +126,5 @@
 				      ,(conc "-t" type)
 				      "/tmp/erd-gen.uml")))
   (move-file (conc "/tmp/erd-gen." type) (conc "./result." type) #t))
+
+

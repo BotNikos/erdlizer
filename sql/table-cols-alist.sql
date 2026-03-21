@@ -19,7 +19,7 @@ from
         information_schema.columns col
         left join information_schema.key_column_usage kc on kc.column_name = col.column_name
         and kc.table_schema = col.table_schema
-        and kc.table_name = col.table_name
+        and kc.table_name = col.table_namecolumns
         left join information_schema.table_constraints cstr on kc.constraint_name = cstr.constraint_name
 where
         col.table_schema = any ($1)
