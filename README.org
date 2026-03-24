@@ -14,8 +14,8 @@ All you need to do is resolve all dependecies, clone repository and build the ap
 
 #+begin_src bash
   curl -L -O https://github.com/plantuml/plantuml/releases/download/v1.2026.2/plantuml-1.2026.2.jar #Check the version to be lastest before go
-  chicken install postgresql
-  chicken install medea
+  chicken-install postgresql
+  chicken-install medea
   git clone https://github.com/BotNikos/erdlizer.git && cd erdlizer
   csc main.scm -o erdlizer
 #+end_src
