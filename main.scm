@@ -16,12 +16,12 @@
     (query* conn content args)))
 
 (define (get-rand-color conf)
-  (let* ((color-ll (cdr (assoc 'color-ll conf)))
-	 (color-ul (cdr (assoc 'color-ul conf)))
-	 (colors (map (lambda (x) (string-pad (number->string x 16) 2 #\0))
-		      (map (lambda (x) (+ color-ll (remainder x (- color-ul color-ll))))
-			   (map pseudo-random-integer
-				(list color-ul color-ul color-ul))))))
+  (let* ([color-ll (cdr (assoc 'color-ll conf))]
+	 [color-ul (cdr (assoc 'color-ul conf))]
+	 [colors (map (lambda (x) (string-pad (number->string x 16) 2 #\0))
+			(map (lambda (x) (+ color-ll (remainder x (- color-ul color-ll))))
+			     (map pseudo-random-integer
+				  (list color-ul color-ul color-ul))))])
     (conc "#" (string-join colors ""))))
 
 (define (fill-file conf tables matrix)
@@ -84,7 +84,7 @@
 
 (define (parse-args acc args)
   (if (null? args)
-      (let-values (((schemas args) (partition string? acc)))
+      (let-values ([(schemas args) (partition string? acc)])
 	(cons (cons 'schemas schemas) args))
       (parse-args (cons (get-arg args) acc)
 		  (if (member (car args) '("-h" "--help" "-t" "--type" "-c" "--conf"))
