@@ -10,13 +10,10 @@
 	postgresql
 	medea)
 
-(define (get-list-from-query res)
- (row-fold (lambda (row acc) (cons row acc)) '() res))
-
 (define (query-file file-args conn)
   (let ([content (read-string #f (open-input-file (car file-args)))]
 	[args (cdr file-args)])
-    (get-list-from-query (query* conn content args))))
+    (query* conn content args)))
 
 (define (get-rand-color conf)
   (let* ((color-ll (cdr (assoc 'color-ll conf)))
@@ -27,51 +24,44 @@
 				(list color-ul color-ul color-ul))))))
     (conc "#" (string-join colors ""))))
 
-(define (fill-tables tables acc)
-  (if (null? tables)
-      acc
-      (fill-tables (cdr tables)
-		   (let* ((row (car tables))
-			  (schema (car row))
-			  (table-name (cadr row))
-			  (cols (read-json (caddr row))))
-		     (conc acc "entity " schema "." table-name " {\n"
-			   (let loop ((len (vector-length cols))
-				      (i 0)
-				      (acc ""))
-			     (if (< i len)
-				 (loop len (+ i 1) (conc acc "\t"
-							 (case (cdr (assoc 'type (vector-ref cols i)))
-							   [(|PRIMARY KEY|) "{static} *"]
-							   [(|FOREIGN KEY|) "{abstract} +"]
-							   [else ""])
-							 (cdr (assoc 'name (vector-ref cols i))) "\n"))
-				 acc))
-			   "}\n\n")))))
-
-(define (fill-matrix conf matrix acc)
-  (if (null? matrix)
-      acc
-      (fill-matrix conf (cdr matrix)
-		   (let* ((row (car matrix))
-			  (fscm (list-ref row 0)) (ftbl (list-ref row 1)) (fcol (list-ref row 2))
-			  (pcol (list-ref row 3)) (ptbl (list-ref row 4)) (pscm (list-ref row 5)))
-		     (conc acc
-			   fscm "." ftbl "::" fcol
-			   " -up-> "
-			   pscm "." ptbl "::" pcol
-			   " " (get-rand-color conf) ";line.bold :"
-			   fcol
-			   "\n")))))
-
 (define (fill-file conf tables matrix)
+  
+  (define (fold-matrix row acc)
+    (let* ([fscm (list-ref row 0)] [ftbl (list-ref row 1)] [fcol (list-ref row 2)]
+	   [pcol (list-ref row 3)] [ptbl (list-ref row 4)] [pscm (list-ref row 5)])
+      (conc acc
+	    fscm "." ftbl "::" fcol
+	    " -up-> "
+	    pscm "." ptbl "::" pcol
+	    " " (get-rand-color conf) ";line.bold :"
+	    fcol
+	    "\n")))
+
+  (define (fold-tables row acc)
+    (let* ([schema (car row)]
+	   [table-name (cadr row)]
+	   [cols (read-json (caddr row))])
+      (conc acc "entity " schema "." table-name " {\n"
+	    (let loop ((len (vector-length cols))
+		       (i 0)
+		       (acc ""))
+	      (if (< i len)
+		  (loop len (+ i 1) (conc acc "\t"
+					  (case (cdr (assoc 'type (vector-ref cols i)))
+					    [(|PRIMARY KEY|) "{static} *"]
+					    [(|FOREIGN KEY|) "{abstract} +"]
+					    [else ""])
+					  (cdr (assoc 'name (vector-ref cols i))) "\n"))
+		  acc))
+	    "}\n\n")))
+  
   (conc "@startuml\n"
 	"skinparam package {\n"
 	"\tBackgroundColor #" (cdr (assoc 'background conf)) "\n"
 	"}\n"
 	"!pragma layout elk\n"
-	(fill-tables tables "")
-	(fill-matrix conf matrix "")
+	(row-fold fold-tables "" tables)
+	(row-fold fold-matrix "" matrix)
 	"@enduml\n"))
 
 (define (get-arg args)
@@ -127,5 +117,4 @@
 				      ,(conc "-t" type)
 				      "/tmp/erd-gen.uml")))
   (move-file (conc "/tmp/erd-gen." type) (conc "./result." type) #t))
-
 
